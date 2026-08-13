@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="在浏览器本地运行的二维码生成器。">
+  <title>二维码生成器</title>
+  <style>
+    body {
+      max-width: 720px;
+      margin: 20px auto;
+      padding: 0 12px;
+      font-family: sans-serif;
+      line-height: 1.4;
+    }
+
+    h1 { margin: 0 0 4px; }
+    .intro { margin: 0 0 12px; }
+    .input-head { display: flex; justify-content: space-between; align-items: baseline; }
+    .input-head label { margin: 0; }
+
+    textarea {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 76px;
+      max-height: 30vh;
+      padding: 8px;
+    }
+
+    button, select, input { margin: 4px 8px 4px 0; }
+    fieldset { margin: 16px 0; }
+    label { display: block; margin: 8px 0; }
+    .preview { display: grid; justify-items: center; margin: 8px 0; }
+    canvas {
+      display: none;
+      width: min(100%, max(180px, calc(100svh - 250px)), 520px);
+      height: auto;
+      image-rendering: pixelated;
+    }
+    #empty, #status { margin: 4px 0; text-align: center; }
+    .actions { margin: 8px 0; text-align: center; }
+    details { margin-top: 8px; }
+    .muted { color: #666; font-size: 14px; }
+    .error { color: #b00020; }
+
+    @media (max-width: 480px) {
+      body { margin: 8px auto; padding: 0 8px; }
+      h1 { font-size: 1.45rem; }
+      .intro { font-size: 13px; margin-bottom: 8px; }
+      textarea { min-height: 68px; }
+      canvas { width: min(100%, max(180px, calc(100svh - 215px))); }
+      button { margin-right: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>二维码生成器</h1>
+    <p class="muted intro">输入内容后自动生成。内容仅在当前浏览器处理，不会上传。</p>
+
+    <div class="input-head">
+      <label for="content">内容</label>
+      <span class="muted"><span id="char-count">0</span> / 2800</span>
+    </div>
+    <textarea id="content" maxlength="2800" spellcheck="false" placeholder="输入网址或文字"></textarea>
+
+    <section class="preview" aria-label="二维码预览">
+      <canvas id="qr-canvas" role="img" aria-label="生成的二维码"></canvas>
+      <p id="empty">输入内容后将在这里显示二维码。</p>
+      <p id="status" class="muted" aria-live="polite">等待输入内容</p>
+    </section>
+
+    <p class="actions">
+      <button id="download" type="button" disabled>下载 PNG</button>
+      <button id="copy" type="button" disabled>复制图片</button>
+      <button id="clear" type="button" disabled>清空</button>
+    </p>
+
+    <details>
+      <summary>更多设置</summary>
+      <fieldset>
+        <legend>二维码设置</legend>
+
+        <label>
+          尺寸：<output id="size-value" for="size">360 px</output><br>
+          <input id="size" type="range" min="240" max="720" value="360" step="40">
+        </label>
+
+        <label>
+          留白：<output id="margin-value" for="margin">4 模块</output><br>
+          <input id="margin" type="range" min="1" max="8" value="4" step="1">
+        </label>
+
+        <label for="level">纠错等级</label>
+        <select id="level">
+          <option value="L">低</option>
+          <option value="M" selected>中</option>
+          <option value="Q">较高</option>
+          <option value="H">高</option>
+        </select>
+
+        <label>
+          前景色
+          <input id="foreground" type="color" value="#000000">
+        </label>
+
+        <label>
+          背景色
+          <input id="background" type="color" value="#ffffff">
+        </label>
+
+        <label>
+          <input id="transparent" type="checkbox">
+          透明背景
+        </label>
+      </fieldset>
+    </details>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha512-ZDSPMa/JM1D+7kdg2x3BsruQ6T/JpJo3jWDWkCZsP+5yVyp1KfESqLI+7RqB5k24F7p2cV7i2YHh/890y6P6Sw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script>
+    (() => {
+      const elements = {
+        content: document.querySelector('#content'),
+        count: document.querySelector('#char-count'),
+        size: document.querySelector('#size'),
+        sizeValue: document.querySelector('#size-value'),
+        margin: document.querySelector('#margin'),
+        marginValue: document.querySelector('#margin-value'),
+        level: document.querySelector('#level'),
+        foreground: document.querySelector('#foreground'),
+        background: document.querySelector('#background'),
+        transparent: document.querySelector('#transparent'),
+        canvas: document.querySelector('#qr-canvas'),
+        empty: document.querySelector('#empty'),
+        status: document.querySelector('#status'),
+        download: document.querySelector('#download'),
+        copy: document.querySelector('#copy'),
+        clear: document.querySelector('#clear')
+      };
+
+      let renderTimer;
+
+      function setStatus(message, isError = false) {
+        elements.status.textContent = message;
+        elements.status.classList.toggle('error', isError);
+      }
+
+      function setAvailable(available) {
+        elements.canvas.style.display = available ? 'block' : 'none';
+        elements.empty.hidden = available;
+        elements.download.disabled = !available;
+        elements.copy.disabled = !available;
+      }
+
+      function render() {
+        const text = elements.content.value;
+        elements.count.textContent = String(text.length);
+        elements.clear.disabled = text.length === 0;
+
+        if (!text.trim()) {
+          setAvailable(false);
+          setStatus('等待输入内容');
+          return;
+        }
+
+        if (typeof window.qrcode !== 'function') {
+          setAvailable(false);
+          setStatus('二维码组件加载失败，请检查网络后刷新页面。', true);
+          return;
+        }
+
+        try {
+          const qr = window.qrcode(0, elements.level.value);
+          qr.addData(text, 'Byte');
+          qr.make();
+
+          const moduleCount = qr.getModuleCount();
+          const margin = Number(elements.margin.value);
+          const size = Number(elements.size.value);
+          const total = moduleCount + margin * 2;
+          const context = elements.canvas.getContext('2d', { alpha: true });
+
+          elements.canvas.width = size;
+          elements.canvas.height = size;
+          context.clearRect(0, 0, size, size);
+
+          if (!elements.transparent.checked) {
+            context.fillStyle = elements.background.value;
+            context.fillRect(0, 0, size, size);
+          }
+
+          context.fillStyle = elements.foreground.value;
+          for (let row = 0; row < moduleCount; row += 1) {
+            const top = Math.floor((row + margin) * size / total);
+            const bottom = Math.floor((row + margin + 1) * size / total);
+            for (let column = 0; column < moduleCount; column += 1) {
+              if (!qr.isDark(row, column)) continue;
+              const left = Math.floor((column + margin) * size / total);
+              const right = Math.floor((column + margin + 1) * size / total);
+              context.fillRect(left, top, right - left, bottom - top);
+            }
+          }
+
+          setAvailable(true);
+          setStatus(`${moduleCount} × ${moduleCount} 模块，${size} × ${size} px`);
+        } catch (error) {
+          setAvailable(false);
+          const message = String(error && error.message ? error.message : error);
+          setStatus(message.includes('overflow') ? '内容过长，请缩短内容或降低纠错等级。' : '无法生成二维码。', true);
+        }
+      }
+
+      function scheduleRender() {
+        clearTimeout(renderTimer);
+        renderTimer = setTimeout(render, 80);
+      }
+
+      elements.content.addEventListener('input', scheduleRender);
+      elements.size.addEventListener('input', () => {
+        elements.sizeValue.textContent = `${elements.size.value} px`;
+        scheduleRender();
+      });
+      elements.margin.addEventListener('input', () => {
+        elements.marginValue.textContent = `${elements.margin.value} 模块`;
+        scheduleRender();
+      });
+      [elements.level, elements.foreground, elements.background, elements.transparent]
+        .forEach((input) => input.addEventListener('input', scheduleRender));
+
+      elements.download.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `qrcode-${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = elements.canvas.toDataURL('image/png');
+        link.click();
+        setStatus('PNG 图片已下载');
+      });
+
+      elements.copy.addEventListener('click', async () => {
+        try {
+          if (!navigator.clipboard || typeof ClipboardItem !== 'function') throw new Error('unsupported');
+          const blob = await new Promise((resolve, reject) => {
+            elements.canvas.toBlob((result) => result ? resolve(result) : reject(new Error('empty')), 'image/png');
+          });
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          setStatus('二维码图片已复制');
+        } catch {
+          setStatus('当前浏览器不允许复制图片，请使用下载按钮。', true);
+        }
+      });
+
+      elements.clear.addEventListener('click', () => {
+        elements.content.value = '';
+        elements.content.focus();
+        render();
+      });
+
+      window.addEventListener('load', render);
+    })();
+  </script>
+</body>
+</html>
