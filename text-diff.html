@@ -209,13 +209,65 @@
       background: #faf8f2;
     }
 
+    .result-panel {
+      position: relative;
+      background: #fff;
+    }
+
+    .result-panel.is-fullscreen {
+      display: flex;
+      position: fixed;
+      z-index: 1000;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      flex-direction: column;
+      background: #fff;
+    }
+
+    .result-panel.is-fullscreen .result-head {
+      flex: 0 0 auto;
+      border-top: 0;
+    }
+
+    .result-panel.is-fullscreen .diff-wrap {
+      height: auto;
+      min-height: 0;
+      flex: 1 1 auto;
+    }
+
+    body.result-fullscreen { overflow: hidden; }
+
     .result-label { font-size: 13px; font-weight: 750; }
 
     .result-tools {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 7px;
     }
+
+    .select-all {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 3px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .select-all input,
+    .row-select input {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    .select-all:has(input:disabled) { cursor: not-allowed; opacity: 0.45; }
 
     .merge-all {
       min-height: 28px;
@@ -230,6 +282,19 @@
       flex-wrap: wrap;
       justify-content: flex-end;
       gap: 5px;
+    }
+
+    .result-meta {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .fullscreen-button {
+      min-height: 28px;
+      padding: 0 9px;
+      white-space: nowrap;
     }
 
     .badge {
@@ -250,10 +315,14 @@
       background: #fff;
     }
 
+    .result-panel.has-results .diff-wrap {
+      height: clamp(360px, 58vh, 720px);
+    }
+
     .diff-table {
       display: grid;
-      grid-template-columns: 42px minmax(300px, 1fr) 48px 42px minmax(300px, 1fr);
-      min-width: 808px;
+      grid-template-columns: 42px minmax(300px, 1fr) 72px 42px minmax(300px, 1fr);
+      min-width: 832px;
       font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
@@ -283,6 +352,15 @@
       border-right: 1px solid var(--line);
       border-bottom: 1px solid rgba(217, 214, 206, 0.45);
       background: #f7f6f1;
+    }
+
+    .row-select {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 20px;
+      cursor: pointer;
     }
 
     .merge-button {
@@ -354,8 +432,10 @@
       .editor + .editor { border-top: 1px solid var(--line); border-left: 0; }
       textarea { height: 150px; min-height: 130px; }
       .diff-wrap { height: 310px; }
+      .result-panel.has-results .diff-wrap { height: 430px; }
       .result-head { align-items: flex-start; flex-direction: column; gap: 7px; }
       .result-tools { width: 100%; flex-wrap: wrap; }
+      .result-meta { width: 100%; justify-content: space-between; }
       .summary { justify-content: flex-start; }
       .privacy { align-items: flex-start; flex-direction: column; gap: 6px; }
     }
@@ -405,24 +485,32 @@
         </div>
       </div>
 
-      <div class="result-head">
-        <div class="result-tools">
-          <span class="result-label">对比结果</span>
-          <button class="merge-all" id="accept-left" type="button" disabled>全部采用左侧 →</button>
-          <button class="merge-all" id="accept-right" type="button" disabled>← 全部采用右侧</button>
-          <button class="merge-all" id="undo-merge" type="button" disabled>撤销合并</button>
+      <section class="result-panel" id="result-panel" aria-label="对比结果面板">
+        <div class="result-head">
+          <div class="result-tools">
+            <span class="result-label">对比结果</span>
+            <label class="select-all"><input id="select-all" type="checkbox" disabled>全选差异</label>
+            <button class="merge-all" id="merge-selected-left" type="button" disabled>← 已选应用到左侧</button>
+            <button class="merge-all" id="merge-selected-right" type="button" disabled>已选应用到右侧 →</button>
+            <button class="merge-all" id="accept-left" type="button" disabled>全部采用左侧 →</button>
+            <button class="merge-all" id="accept-right" type="button" disabled>← 全部采用右侧</button>
+            <button class="merge-all" id="undo-merge" type="button" disabled>撤销合并</button>
+          </div>
+          <div class="result-meta">
+            <div class="summary" id="summary" aria-live="polite">
+              <span class="badge">等待对比</span>
+            </div>
+            <button class="fullscreen-button" id="toggle-fullscreen" type="button" aria-pressed="false">⛶ 全屏查看</button>
+          </div>
         </div>
-        <div class="summary" id="summary" aria-live="polite">
-          <span class="badge">等待对比</span>
-        </div>
-      </div>
 
-      <div class="diff-wrap" id="diff-wrap">
-        <div class="empty-state" id="empty-state">
-          <div><strong>差异会显示在这里</strong>输入两段文本，然后点击“开始对比”</div>
+        <div class="diff-wrap" id="diff-wrap">
+          <div class="empty-state" id="empty-state">
+            <div><strong>差异会显示在这里</strong>输入两段文本，然后点击“开始对比”</div>
+          </div>
+          <div class="diff-table" id="diff-table" hidden aria-label="文本差异结果"></div>
         </div>
-        <div class="diff-table" id="diff-table" hidden aria-label="文本差异结果"></div>
-      </div>
+      </section>
     </section>
 
     <footer class="privacy">
@@ -438,16 +526,22 @@
       const right = $('#right-text');
       const table = $('#diff-table');
       const emptyState = $('#empty-state');
+      const resultPanel = $('#result-panel');
       const summary = $('#summary');
       const ignoreSpace = $('#ignore-space');
       const ignoreCase = $('#ignore-case');
+      const selectAll = $('#select-all');
+      const mergeSelectedLeft = $('#merge-selected-left');
+      const mergeSelectedRight = $('#merge-selected-right');
       const acceptLeft = $('#accept-left');
       const acceptRight = $('#accept-right');
       const undoMerge = $('#undo-merge');
+      const toggleFullscreen = $('#toggle-fullscreen');
       let debounceTimer;
       let hasCompared = false;
       let currentRows = [];
       let history = [];
+      const selectedRows = new Set();
 
       const escapeHtml = (value) => String(value)
         .replaceAll('&', '&amp;')
@@ -469,6 +563,22 @@
         acceptLeft.disabled = !canMerge;
         acceptRight.disabled = !canMerge;
         undoMerge.disabled = history.length === 0;
+      }
+
+      function updateSelectionControls() {
+        const changeRows = currentRows
+          .map((row, index) => row.type === 'equal' ? null : index)
+          .filter((index) => index !== null);
+        const selectedCount = selectedRows.size;
+
+        table.querySelectorAll('.row-checkbox').forEach((checkbox) => {
+          checkbox.checked = selectedRows.has(Number(checkbox.dataset.row));
+        });
+        selectAll.disabled = changeRows.length === 0;
+        selectAll.checked = changeRows.length > 0 && selectedCount === changeRows.length;
+        selectAll.indeterminate = selectedCount > 0 && selectedCount < changeRows.length;
+        mergeSelectedLeft.disabled = selectedCount === 0;
+        mergeSelectedRight.disabled = selectedCount === 0;
       }
 
       function pushHistory() {
@@ -651,6 +761,9 @@
         const leftClass = row.type === 'delete' || row.type === 'modify' ? ' deleted' : row.left === undefined ? ' empty-cell' : '';
         const rightClass = row.type === 'insert' || row.type === 'modify' ? ' inserted' : row.right === undefined ? ' empty-cell' : '';
         const mergeButtons = row.type === 'equal' ? '' : `
+          <label class="row-select" title="选择此差异">
+            <input class="row-checkbox" type="checkbox" data-row="${rowIndex}" aria-label="选择第 ${rowIndex + 1} 行差异">
+          </label>
           <button class="merge-button" type="button" data-target="left" data-row="${rowIndex}" title="采用右侧内容" aria-label="将此差异应用到左侧">←</button>
           <button class="merge-button" type="button" data-target="right" data-row="${rowIndex}" title="采用左侧内容" aria-label="将此差异应用到右侧">→</button>`;
         return `
@@ -661,36 +774,75 @@
           <div class="cell${rightClass}">${rightHtml || (row.right === '' ? '&nbsp;' : '')}</div>`;
       }
 
-      function mergeRow(rowIndex, target) {
-        const row = currentRows[rowIndex];
-        if (!row || row.type === 'equal') return;
-
+      function mergeRows(rowIndexes, target) {
+        const rows = rowIndexes
+          .map((rowIndex) => ({ rowIndex, row: currentRows[rowIndex] }))
+          .filter(({ row }) => row && row.type !== 'equal')
+          .sort((a, b) => b.rowIndex - a.rowIndex);
+        if (rows.length === 0) return;
         const leftLines = splitLines(left.value);
         const rightLines = splitLines(right.value);
         pushHistory();
 
-        if (target === 'left') {
-          if (row.right === undefined) {
-            leftLines.splice(row.leftIndex, 1);
-          } else if (row.left === undefined) {
-            leftLines.splice(row.leftIndex, 0, row.right);
+        for (const { row } of rows) {
+          if (target === 'left') {
+            if (row.right === undefined) {
+              leftLines.splice(row.leftIndex, 1);
+            } else if (row.left === undefined) {
+              leftLines.splice(row.leftIndex, 0, row.right);
+            } else {
+              leftLines[row.leftIndex] = row.right;
+            }
           } else {
-            leftLines[row.leftIndex] = row.right;
+            if (row.left === undefined) {
+              rightLines.splice(row.rightIndex, 1);
+            } else if (row.right === undefined) {
+              rightLines.splice(row.rightIndex, 0, row.left);
+            } else {
+              rightLines[row.rightIndex] = row.left;
+            }
           }
+        }
+
+        if (target === 'left') {
           left.value = leftLines.join('\n');
         } else {
-          if (row.left === undefined) {
-            rightLines.splice(row.rightIndex, 1);
-          } else if (row.right === undefined) {
-            rightLines.splice(row.rightIndex, 0, row.left);
-          } else {
-            rightLines[row.rightIndex] = row.left;
-          }
           right.value = rightLines.join('\n');
         }
 
+        selectedRows.clear();
         updateCounts();
         compare();
+      }
+
+      function mergeRow(rowIndex, target) {
+        mergeRows([rowIndex], target);
+      }
+
+      function isResultFullscreen() {
+        return resultPanel.classList.contains('is-fullscreen');
+      }
+
+      function updateFullscreenControl() {
+        const active = isResultFullscreen();
+        toggleFullscreen.textContent = active ? '退出全屏' : '⛶ 全屏查看';
+        toggleFullscreen.setAttribute('aria-pressed', String(active));
+      }
+
+      function leaveResultFullscreen() {
+        resultPanel.classList.remove('is-fullscreen');
+        document.body.classList.remove('result-fullscreen');
+        updateFullscreenControl();
+      }
+
+      function toggleResultFullscreen() {
+        if (resultPanel.classList.contains('is-fullscreen')) {
+          leaveResultFullscreen();
+          return;
+        }
+        resultPanel.classList.add('is-fullscreen');
+        document.body.classList.add('result-fullscreen');
+        updateFullscreenControl();
       }
 
       function compare() {
@@ -700,11 +852,14 @@
 
         if (!leftValue && !rightValue) {
           currentRows = [];
+          selectedRows.clear();
+          resultPanel.classList.remove('has-results');
           table.hidden = true;
           emptyState.hidden = false;
           emptyState.innerHTML = '<div><strong>先放入两段文本</strong>粘贴内容后，就可以开始对比</div>';
           summary.innerHTML = '<span class="badge">等待文本</span>';
           updateMergeControls(false);
+          updateSelectionControls();
           return;
         }
 
@@ -719,21 +874,26 @@
         }, { insert: 0, delete: 0, modify: 0 });
         const changed = counts.insert + counts.delete + counts.modify;
 
+        selectedRows.clear();
         table.innerHTML = rows.map(renderRow).join('');
         table.hidden = false;
         emptyState.hidden = true;
+        resultPanel.classList.add('has-results');
         summary.innerHTML = changed === 0
           ? '<span class="badge add">✓ 两段文本一致</span>'
           : `<span class="badge modify">~ ${counts.modify} 行修改</span>
              <span class="badge remove">− ${counts.delete} 行删除</span>
              <span class="badge add">+ ${counts.insert} 行新增</span>`;
         updateMergeControls(left.value !== right.value);
+        updateSelectionControls();
       }
 
       function scheduleCompare() {
         history = [];
+        selectedRows.clear();
         updateCounts();
         updateMergeControls();
+        updateSelectionControls();
         if (!hasCompared) return;
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(compare, 220);
@@ -750,6 +910,31 @@
         if (!button) return;
         mergeRow(Number(button.dataset.row), button.dataset.target);
       });
+
+      table.addEventListener('change', (event) => {
+        const checkbox = event.target.closest('.row-checkbox');
+        if (!checkbox) return;
+        const rowIndex = Number(checkbox.dataset.row);
+        if (checkbox.checked) {
+          selectedRows.add(rowIndex);
+        } else {
+          selectedRows.delete(rowIndex);
+        }
+        updateSelectionControls();
+      });
+
+      selectAll.addEventListener('change', () => {
+        selectedRows.clear();
+        if (selectAll.checked) {
+          currentRows.forEach((row, index) => {
+            if (row.type !== 'equal') selectedRows.add(index);
+          });
+        }
+        updateSelectionControls();
+      });
+
+      mergeSelectedLeft.addEventListener('click', () => mergeRows([...selectedRows], 'left'));
+      mergeSelectedRight.addEventListener('click', () => mergeRows([...selectedRows], 'right'));
 
       acceptLeft.addEventListener('click', () => {
         if (left.value === right.value) return;
@@ -789,6 +974,8 @@
         hasCompared = false;
         currentRows = [];
         history = [];
+        selectedRows.clear();
+        resultPanel.classList.remove('has-results');
         updateCounts();
         table.hidden = true;
         table.innerHTML = '';
@@ -796,6 +983,7 @@
         emptyState.innerHTML = '<div><strong>差异会显示在这里</strong>输入两段文本，然后点击“开始对比”</div>';
         summary.innerHTML = '<span class="badge">等待对比</span>';
         updateMergeControls(false);
+        updateSelectionControls();
         left.focus();
       });
 
@@ -811,14 +999,19 @@
         if (hasCompared) compare();
       }));
 
+      toggleFullscreen.addEventListener('click', toggleResultFullscreen);
+
       document.addEventListener('keydown', (event) => {
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
           event.preventDefault();
           compare();
+        } else if (event.key === 'Escape' && resultPanel.classList.contains('is-fullscreen')) {
+          leaveResultFullscreen();
         }
       });
 
       updateCounts();
+      updateSelectionControls();
     })();
   </script>
 </body>
