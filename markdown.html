@@ -285,19 +285,8 @@
 
     .editor-wrap.is-dragging .drop-overlay { display: flex; }
 
-    .preview-shell { min-height: 0; flex: 1; overflow: auto; background: #fff; }
-    #preview { min-height: 100%; padding: clamp(20px, 3.4vw, 42px); }
-
-    .empty-state {
-      display: grid;
-      min-height: 100%;
-      padding: 36px;
-      color: var(--muted);
-      place-items: center;
-      text-align: center;
-    }
-
-    .empty-state strong { display: block; margin-bottom: 5px; color: var(--ink); font-size: 15px; }
+    .preview-shell { position: relative; min-height: 0; flex: 1; overflow: hidden; background: #fff; }
+    #preview { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
 
     .footer {
       display: flex;
@@ -351,7 +340,6 @@
       .toolbar { gap: 5px; }
       button, .file-button { padding: 0 9px; }
       .switch { font-size: 10px; }
-      #preview { padding: 20px 16px; }
       .footer .shortcut { display: none; }
     }
 
@@ -421,130 +409,6 @@
       box-shadow: none;
     }
   </style>
-  <style id="markdown-style">
-    .md-body {
-      color: #242b27;
-      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-      font-size: 15px;
-      line-height: 1.72;
-      overflow-wrap: break-word;
-    }
-
-    .md-body > :first-child { margin-top: 0 !important; }
-    .md-body > :last-child { margin-bottom: 0 !important; }
-    .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
-      margin: 1.55em 0 0.65em;
-      color: #17201b;
-      font-weight: 750;
-      letter-spacing: -0.025em;
-      line-height: 1.28;
-    }
-    .md-body h1 { padding-bottom: 0.32em; border-bottom: 1px solid #dddeda; font-size: 2em; }
-    .md-body h2 { padding-bottom: 0.28em; border-bottom: 1px solid #e5e6e2; font-size: 1.52em; }
-    .md-body h3 { font-size: 1.26em; }
-    .md-body h4 { font-size: 1.08em; }
-    .md-body p, .md-body blockquote, .md-body ul, .md-body ol, .md-body dl, .md-body table, .md-body pre, .md-body details { margin: 0 0 1em; }
-    .md-body a { color: #126848; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
-    .md-body a:hover { color: #0b4932; }
-    .md-body strong { color: #17201b; font-weight: 720; }
-    .md-body hr { height: 1px; margin: 2em 0; border: 0; background: #dddeda; }
-    .md-body blockquote { padding: 0.15em 1em; border-left: 3px solid #63a286; color: #58615c; }
-    .md-body blockquote > :last-child { margin-bottom: 0; }
-    .md-body ul, .md-body ol { padding-left: 1.55em; }
-    .md-body li + li { margin-top: 0.28em; }
-    .md-body li > p { margin-bottom: 0.45em; }
-    .md-body input[type="checkbox"] { margin: 0 0.45em 0.2em -1.35em; accent-color: #17694b; vertical-align: middle; }
-    .md-body code {
-      padding: 0.16em 0.38em;
-      border: 1px solid #e0e2de;
-      border-radius: 4px;
-      background: #f3f4f2;
-      color: #ad3e2f;
-      font: 0.88em/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    }
-    .md-body pre {
-      position: relative;
-      padding: 1em 1.08em;
-      overflow: auto;
-      border: 1px solid #dfe2de;
-      border-radius: 8px;
-      background: #f6f7f5;
-      color: #27302b;
-      line-height: 1.58;
-      tab-size: 2;
-    }
-    .md-body pre code { padding: 0; border: 0; background: transparent; color: inherit; font-size: 0.86em; }
-    .md-body .code-lang { display: block; margin: -0.2em 0 0.7em; color: #818a84; font: 10px/1 ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
-    .md-body table { display: block; width: max-content; max-width: 100%; overflow: auto; border-spacing: 0; border-collapse: collapse; }
-    .md-body th, .md-body td { padding: 0.55em 0.75em; border: 1px solid #dfe1dd; text-align: left; }
-    .md-body th { background: #f2f4f1; color: #1c2620; font-weight: 700; }
-    .md-body tr:nth-child(even) td { background: #fafbf9; }
-    .md-body img { max-width: 100%; height: auto; border-radius: 6px; }
-    .md-body details { padding: 0.7em 0.85em; border: 1px solid #dfe1dd; border-radius: 7px; }
-    .md-body summary { cursor: pointer; font-weight: 680; }
-    .md-body kbd { padding: 0.12em 0.38em; border: 1px solid #cdd0cc; border-bottom-width: 2px; border-radius: 4px; background: #f7f8f6; font: 0.82em ui-monospace, monospace; }
-    .md-body .hljs-keyword, .md-body .hljs-selector-tag, .md-body .hljs-literal { color: #8b3bb0; }
-    .md-body .hljs-string, .md-body .hljs-regexp { color: #397a35; }
-    .md-body .hljs-number, .md-body .hljs-symbol { color: #b75723; }
-    .md-body .hljs-title, .md-body .hljs-section, .md-body .hljs-function { color: #245eb0; }
-    .md-body .hljs-comment, .md-body .hljs-quote { color: #7c8580; font-style: italic; }
-    .md-body .hljs-attr, .md-body .hljs-attribute { color: #9b542a; }
-    .md-body .hljs-built_in, .md-body .hljs-type { color: #1b7980; }
-    .md-body .language-diff .hljs-addition { display: inline-block; width: 100%; background: #e4f3e9; color: #23673c; }
-    .md-body .language-diff .hljs-deletion { display: inline-block; width: 100%; background: #f7e7e4; color: #9b3f34; }
-
-    .md-body {
-      background: #fff;
-      color: #1f2328;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Microsoft YaHei", monospace;
-      font-size: 14px;
-    }
-
-    .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
-      color: #1f2328;
-      font-family: inherit;
-      font-weight: 700;
-      letter-spacing: -0.035em;
-    }
-
-    .md-body h1, .md-body h2 { border-bottom-color: #d0d7de; }
-    .md-body a, .md-body a:hover { color: #16824c; }
-    .md-body strong { color: #1f2328; }
-    .md-body hr { background: #d0d7de; }
-    .md-body blockquote { border-left-color: #16824c; color: #656d76; }
-    .md-body input[type="checkbox"] { accent-color: #16824c; }
-
-    .md-body code {
-      border-color: #d0d7de;
-      border-radius: 2px;
-      background: #f6f8fa;
-      color: #cf222e;
-    }
-
-    .md-body pre {
-      border-color: #d0d7de;
-      border-radius: 2px;
-      background: #f6f8fa;
-      color: #1f2328;
-    }
-
-    .md-body .code-lang { color: #656d76; }
-    .md-body th, .md-body td { border-color: #d0d7de; }
-    .md-body th { background: #f6f8fa; color: #1f2328; }
-    .md-body tr:nth-child(even) td { background: #f6f8fa; }
-    .md-body img, .md-body details, .md-body kbd { border-radius: 2px; }
-    .md-body details { border-color: #d0d7de; }
-    .md-body kbd { border-color: #afb8c1; background: #f6f8fa; }
-    .md-body .hljs-keyword, .md-body .hljs-selector-tag, .md-body .hljs-literal { color: #cf222e; }
-    .md-body .hljs-string, .md-body .hljs-regexp { color: #0a3069; }
-    .md-body .hljs-number, .md-body .hljs-symbol { color: #0550ae; }
-    .md-body .hljs-title, .md-body .hljs-section, .md-body .hljs-function { color: #8250df; }
-    .md-body .hljs-comment, .md-body .hljs-quote { color: #6e7781; }
-    .md-body .hljs-attr, .md-body .hljs-attribute { color: #116329; }
-    .md-body .hljs-built_in, .md-body .hljs-type { color: #953800; }
-    .md-body .language-diff .hljs-addition { background: #e6ffec; color: #13743f; }
-    .md-body .language-diff .hljs-deletion { background: #ffebe9; color: #b4232f; }
-  </style>
 </head>
 <body>
   <main class="shell">
@@ -605,9 +469,7 @@
             </div>
           </div>
           <div id="preview-shell" class="preview-shell" role="tabpanel" aria-labelledby="preview-tab">
-            <article id="preview" class="md-body">
-              <div class="empty-state"><div><strong>等待 Markdown</strong>粘贴内容后会在这里实时预览</div></div>
-            </article>
+            <iframe id="preview" title="无样式 HTML 预览"></iframe>
           </div>
           <textarea id="html-source" role="tabpanel" aria-labelledby="source-tab" aria-label="生成的 HTML" readonly hidden></textarea>
         </section>
@@ -625,7 +487,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/marked@16.2.1/lib/marked.umd.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
     (() => {
       const elements = {
@@ -699,13 +560,6 @@
       let renderTimer;
       let toastTimer;
 
-      const escapeHTML = (value) => String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-
       function showToast(message) {
         clearTimeout(toastTimer);
         elements.toast.textContent = message;
@@ -726,7 +580,6 @@
       }
 
       function buildDocument(content) {
-        const style = document.querySelector('#markdown-style').textContent;
         return [
           '<!doctype html>',
           '<html lang="zh-CN">',
@@ -734,9 +587,8 @@
           '  <meta charset="utf-8">',
           '  <meta name="viewport" content="width=device-width, initial-scale=1">',
           '  <title>Markdown 文档</title>',
-          `  <style>${style}</style>`,
           '</head>',
-          '<body class="md-body">',
+          '<body>',
           content,
           '</body>',
           '</html>'
@@ -747,36 +599,6 @@
         outputHTML = elements.outputMode.value === 'document' && fragmentHTML ? buildDocument(fragmentHTML) : fragmentHTML;
         elements.source.value = outputHTML;
         elements.outputStats.textContent = `${byteSize(outputHTML)} HTML`;
-      }
-
-      function createRenderer() {
-        const renderer = new marked.Renderer();
-        renderer.code = (tokenOrCode, infoString) => {
-          const token = typeof tokenOrCode === 'object' ? tokenOrCode : { text: tokenOrCode, lang: infoString };
-          const code = token.text || '';
-          const requestedLanguage = String(token.lang || '').trim().split(/\s+/)[0].toLowerCase();
-          let highlighted = escapeHTML(code);
-          let language = requestedLanguage;
-
-          if (window.hljs) {
-            try {
-              if (language && hljs.getLanguage(language)) {
-                highlighted = hljs.highlight(code, { language }).value;
-              } else if (code.trim()) {
-                const detected = hljs.highlightAuto(code);
-                highlighted = detected.value;
-                language = language || detected.language || '';
-              }
-            } catch (error) {
-              highlighted = escapeHTML(code);
-            }
-          }
-
-          const className = language ? ` class="hljs language-${escapeHTML(language)}"` : ' class="hljs"';
-          const label = requestedLanguage ? `<span class="code-lang">${escapeHTML(requestedLanguage)}</span>` : '';
-          return `<pre>${label}<code${className}>${highlighted}</code></pre>\n`;
-        };
-        return renderer;
       }
 
       function secureLinks(container) {
@@ -796,7 +618,7 @@
         if (!markdown.trim()) {
           fragmentHTML = '';
           outputHTML = '';
-          elements.preview.innerHTML = '<div class="empty-state"><div><strong>等待 Markdown</strong>粘贴内容后会在这里实时预览</div></div>';
+          elements.preview.srcdoc = '<p>等待 Markdown 输入</p>';
           elements.source.value = '';
           elements.copy.disabled = true;
           elements.download.disabled = true;
@@ -819,17 +641,17 @@
           const rendered = marked.parse(markdown, {
             gfm: true,
             breaks: elements.breaks.checked,
-            async: false,
-            renderer: createRenderer()
+            async: false
           });
-          fragmentHTML = DOMPurify.sanitize(rendered, {
+          const previewContent = document.createElement('template');
+          previewContent.innerHTML = DOMPurify.sanitize(rendered, {
             USE_PROFILES: { html: true },
             ADD_TAGS: ['details', 'summary', 'kbd'],
             ADD_ATTR: ['target', 'rel', 'class', 'checked', 'disabled']
           });
-          elements.preview.innerHTML = fragmentHTML;
-          secureLinks(elements.preview);
-          fragmentHTML = elements.preview.innerHTML;
+          secureLinks(previewContent.content);
+          fragmentHTML = previewContent.innerHTML;
+          elements.preview.srcdoc = fragmentHTML;
           refreshOutputMode();
           elements.copy.disabled = false;
           elements.download.disabled = false;
