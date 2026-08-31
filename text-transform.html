@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="按指定字符分割、清理并重新合并文本。">
+  <title>文本分割 / 合并</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { max-width: 920px; margin: 28px auto; padding: 0 16px; color: #202124; font-family: sans-serif; line-height: 1.5; }
+    header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 18px; }
+    h1 { margin: 0; font-size: 26px; }
+    a { color: #146c43; }
+    .hint, .status { color: #666; font-size: 14px; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; border: 1px solid #ccc; border-radius: 7px; background: #fafafa; }
+    .control label, .field-head label { display: block; margin-bottom: 5px; font-weight: 650; }
+    input[type="text"] { width: 100%; min-height: 38px; padding: 7px 9px; border: 1px solid #aaa; border-radius: 5px; font: 14px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .options { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 18px; }
+    .options label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+    textarea { width: 100%; min-height: 190px; padding: 10px; resize: vertical; border: 1px solid #bbb; border-radius: 6px; font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    textarea:focus, input:focus, button:focus-visible { outline: 3px solid rgba(20, 108, 67, 0.2); outline-offset: 1px; }
+    .field { margin-top: 16px; }
+    .field-head { display: flex; align-items: end; justify-content: space-between; gap: 10px; }
+    .field-head label { margin: 0; }
+    .result-head { display: flex; align-items: center; gap: 8px; }
+    button { min-height: 34px; padding: 0 11px; border: 1px solid #aaa; border-radius: 6px; background: #fff; cursor: pointer; font: inherit; }
+    button:hover { background: #f3f3f3; }
+    .primary { border-color: #146c43; background: #146c43; color: #fff; }
+    .primary:hover { background: #0f5736; }
+    .preview { max-height: 230px; margin: 8px 0 0; padding-left: 38px; overflow: auto; border: 1px solid #ddd; border-radius: 6px; }
+    .preview li { padding: 5px 8px; border-bottom: 1px solid #eee; }
+    .preview li:last-child { border-bottom: 0; }
+    .preview code { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .empty { color: #888; }
+    .status { min-height: 21px; margin-top: 10px; }
+    @media (max-width: 600px) {
+      body { margin-top: 16px; }
+      header { align-items: flex-start; flex-direction: column; gap: 2px; }
+      .controls { grid-template-columns: 1fr; }
+      .options { grid-column: auto; }
+      textarea { min-height: 160px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>文本分割 / 合并</h1>
+    <a href="/">返回工具箱</a>
+  </header>
+  <p class="hint">按一段指定文本分割，可清理每一项，再用新的分隔符合并。支持 <code>\n</code>、<code>\t</code>、<code>\r</code>。</p>
+
+  <main>
+    <section class="controls" aria-label="处理规则">
+      <div class="control">
+        <label for="splitter">分割字符</label>
+        <input id="splitter" type="text" value="," spellcheck="false" aria-describedby="splitter-help">
+        <div id="splitter-help" class="hint">例如 <code>,</code>、<code>|</code> 或 <code>\n</code></div>
+      </div>
+      <div class="control">
+        <label for="joiner">合并字符</label>
+        <input id="joiner" type="text" value="\n" spellcheck="false" aria-describedby="joiner-help">
+        <div id="joiner-help" class="hint">留空表示直接拼接</div>
+      </div>
+      <div class="options">
+        <label><input id="trim" type="checkbox" checked> 每项去除首尾空白</label>
+        <label><input id="remove-empty" type="checkbox"> 移除空项</label>
+      </div>
+    </section>
+
+    <section class="field">
+      <div class="field-head">
+        <label for="source">原始文本</label>
+        <button id="clear" type="button">清空</button>
+      </div>
+      <textarea id="source" spellcheck="false" placeholder="例如：apple, banana, cherry"></textarea>
+    </section>
+
+    <section class="field">
+      <div class="field-head">
+        <label>分割结果</label>
+        <span id="item-count" class="hint">0 项</span>
+      </div>
+      <ol id="preview" class="preview" aria-live="polite">
+        <li class="empty">等待输入</li>
+      </ol>
+    </section>
+
+    <section class="field">
+      <div class="field-head">
+        <label for="result">合并结果</label>
+        <div class="result-head">
+          <span id="result-count" class="hint">0 字符</span>
+          <button id="copy" class="primary" type="button">复制结果</button>
+        </div>
+      </div>
+      <textarea id="result" readonly spellcheck="false" placeholder="处理后的字符串会自动显示在这里"></textarea>
+    </section>
+    <div id="status" class="status" role="status" aria-live="polite">等待输入</div>
+  </main>
+
+  <script>
+    (() => {
+      const source = document.querySelector('#source');
+      const splitter = document.querySelector('#splitter');
+      const joiner = document.querySelector('#joiner');
+      const trim = document.querySelector('#trim');
+      const removeEmpty = document.querySelector('#remove-empty');
+      const result = document.querySelector('#result');
+      const preview = document.querySelector('#preview');
+      const itemCount = document.querySelector('#item-count');
+      const resultCount = document.querySelector('#result-count');
+      const status = document.querySelector('#status');
+
+      function parseSeparator(value) {
+        return value.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+      }
+
+      function renderPreview(items) {
+        preview.replaceChildren();
+        if (!source.value) {
+          const empty = document.createElement('li');
+          empty.className = 'empty';
+          empty.textContent = '等待输入';
+          preview.append(empty);
+          return;
+        }
+
+        const visibleItems = items.slice(0, 200);
+        visibleItems.forEach((item) => {
+          const row = document.createElement('li');
+          const code = document.createElement('code');
+          code.textContent = item || '（空）';
+          if (!item) code.className = 'empty';
+          row.append(code);
+          preview.append(row);
+        });
+
+        if (items.length > visibleItems.length) {
+          const more = document.createElement('li');
+          more.className = 'empty';
+          more.textContent = `还有 ${items.length - visibleItems.length} 项未在预览中显示`;
+          preview.append(more);
+        }
+      }
+
+      function transform() {
+        const splitValue = parseSeparator(splitter.value);
+        const joinValue = parseSeparator(joiner.value);
+        let items = source.value ? (splitValue ? source.value.split(splitValue) : [source.value]) : [];
+        if (trim.checked) items = items.map((item) => item.trim());
+        if (removeEmpty.checked) items = items.filter((item) => item.length > 0);
+
+        result.value = items.join(joinValue);
+        itemCount.textContent = `${items.length} 项`;
+        resultCount.textContent = `${Array.from(result.value).length} 字符`;
+        renderPreview(items);
+        status.textContent = source.value ? '结果已自动更新' : '等待输入';
+      }
+
+      [source, splitter, joiner, trim, removeEmpty].forEach((element) => {
+        element.addEventListener('input', transform);
+        element.addEventListener('change', transform);
+      });
+
+      document.querySelector('#copy').addEventListener('click', async () => {
+        if (!result.value) {
+          status.textContent = '没有可复制的内容';
+          return;
+        }
+        try {
+          await navigator.clipboard.writeText(result.value);
+          status.textContent = '合并结果已复制';
+        } catch {
+          result.focus();
+          result.select();
+          status.textContent = '无法自动复制，已为你选中结果。';
+        }
+      });
+
+      document.querySelector('#clear').addEventListener('click', () => {
+        source.value = '';
+        transform();
+        source.focus();
+      });
+
+      transform();
+    })();
+  </script>
+</body>
+</html>
