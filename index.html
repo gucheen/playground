@@ -3,34 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Playground 是一组在浏览器本地运行的文本与内容处理工具。">
     <title>Playground 工具箱</title>
-    <style>
-        body { max-width: 720px; margin: 40px auto; padding: 0 16px; font-family: sans-serif; line-height: 1.6; color: #202124; }
-        h1 { margin-bottom: 4px; }
-        p { margin-top: 0; color: #666; }
-        li { margin: 8px 0; }
-    </style>
-    <link rel="stylesheet" href="theme.css?v=c980c37d302d">
+    <link rel="stylesheet" href="theme.css?v=2f3b79a180c1">
 </head>
 <body class="pg-home">
-    <h1>Playground 工具箱</h1>
-    <p>一些在浏览器本地运行的小工具。</p>
-    <ul>
-        <li>
-            <a href="/base64.html">Base64 编码 / 解码</a>
-        </li>
-        <li>
-            <a href="/text-transform.html">文本分割 / 合并</a>
-        </li>
-        <li>
-            <a href="/qrcode.html">二维码生成器</a>
-        </li>
-        <li>
-            <a href="/text-diff.html">文本 Diff</a>
-        </li>
-        <li>
-            <a href="/markdown.html">Markdown 转 HTML</a>
-        </li>
-    </ul>
+    <main>
+        <header class="home-hero">
+            <div class="home-brand" aria-label="Playground">
+                <span class="home-brand-mark" aria-hidden="true">P</span>
+                <span>PLAYGROUND</span>
+            </div>
+            <h1>今天要处理什么？</h1>
+            <p>选择一个工具，数据只在你的浏览器中处理。</p>
+        </header>
+
+        <nav class="tool-grid" aria-label="工具列表">
+            <a class="tool-card tool-card--base64" href="/base64.html">
+                <span class="tool-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48">
+                        <path d="M11 15.5h7.5a6.5 6.5 0 0 1 0 13H11m26 0h-7.5a6.5 6.5 0 0 1 0-13H37M17.5 22h13"/>
+                    </svg>
+                </span>
+                <span class="tool-content">
+                    <span class="tool-name">Base64</span>
+                    <span class="tool-description">编码与解码文本、文件</span>
+                    <span class="tool-tags"><span>编码</span><span>解码</span></span>
+                </span>
+                <span class="tool-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="tool-card tool-card--transform" href="/text-transform.html">
+                <span class="tool-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48">
+                        <path d="M10 13h18m-18 7h11m-11 7h11m-11 7h18m6-16v12m-5-5 5 5 5-5"/>
+                    </svg>
+                </span>
+                <span class="tool-content">
+                    <span class="tool-name">文本整理</span>
+                    <span class="tool-description">分割、合并与批量转换</span>
+                    <span class="tool-tags"><span>分隔符</span><span>拼接</span></span>
+                </span>
+                <span class="tool-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="tool-card tool-card--qrcode" href="/qrcode.html">
+                <span class="tool-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48">
+                        <path d="M10 10h11v11H10zm17 0h11v11H27zM10 27h11v11H10zm19 0h3v3h-3zm6 0h3v7h-3zm-8 7h7v4h-7zm8 2h3v2h-3"/>
+                    </svg>
+                </span>
+                <span class="tool-content">
+                    <span class="tool-name">二维码</span>
+                    <span class="tool-description">把链接或文本生成二维码</span>
+                    <span class="tool-tags"><span>QR Code</span><span>下载图片</span></span>
+                </span>
+                <span class="tool-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="tool-card tool-card--diff" href="/text-diff.html">
+                <span class="tool-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48">
+                        <path d="M13 11v26m22-26v26M8 16h10m-5-5v10m17-5h10M8 30h10m12 0h10m-27-5v10m22-10v10"/>
+                    </svg>
+                </span>
+                <span class="tool-content">
+                    <span class="tool-name">文本对比</span>
+                    <span class="tool-description">找出两段文本间的差异</span>
+                    <span class="tool-tags"><span>Diff</span><span>逐行比较</span></span>
+                </span>
+                <span class="tool-arrow" aria-hidden="true">↗</span>
+            </a>
+
+            <a class="tool-card tool-card--markdown" href="/markdown.html">
+                <span class="tool-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48">
+                        <path d="M8 13h32v22H8zM13 29V19l5 6 5-6v10m5-5h4v-5m0 5h4m-4 0v5"/>
+                    </svg>
+                </span>
+                <span class="tool-content">
+                    <span class="tool-name">Markdown</span>
+                    <span class="tool-description">预览并转换为 HTML</span>
+                    <span class="tool-tags"><span>实时预览</span><span>HTML</span></span>
+                </span>
+                <span class="tool-arrow" aria-hidden="true">↗</span>
+            </a>
+        </nav>
+
+        <footer class="home-footer">
+            <span><span class="status-dot" aria-hidden="true"></span>内容仅在本地处理</span>
+            <span>5 个工具</span>
+        </footer>
+    </main>
 </body>
 </html>

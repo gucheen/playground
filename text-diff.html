@@ -321,8 +321,8 @@
 
     .diff-table {
       display: grid;
-      grid-template-columns: 42px minmax(300px, 1fr) 72px 42px minmax(300px, 1fr);
-      min-width: 832px;
+      grid-template-columns: 42px minmax(300px, 1fr) 94px 42px minmax(300px, 1fr);
+      min-width: 854px;
       font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
 
@@ -362,6 +362,31 @@
       height: 20px;
       cursor: pointer;
     }
+
+    .select-handle {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .select-handle:hover {
+      background: #e9ecef;
+      color: var(--accent-dark);
+    }
+
+    .row-selected {
+      position: relative;
+      box-shadow: inset 0 2px var(--accent), inset 0 -2px var(--accent);
+    }
+
+    .row-selected.row-start {
+      box-shadow: inset 2px 0 var(--accent), inset 0 2px var(--accent), inset 0 -2px var(--accent);
+    }
+
+    .row-selected.row-end {
+      box-shadow: inset -2px 0 var(--accent), inset 0 2px var(--accent), inset 0 -2px var(--accent);
+    }
+
+    .selection-hint { color: var(--muted); font-size: 11px; }
 
     .merge-button {
       width: 20px;
@@ -545,11 +570,14 @@
         <div class="result-head">
           <div class="result-tools">
             <span class="result-label">对比结果</span>
+            <span class="selection-hint">点按或拖动行号多选，Shift 连选</span>
             <label class="select-all"><input id="select-all" type="checkbox" disabled>全选差异</label>
             <button class="merge-all" id="merge-selected-left" type="button" disabled>← 已选应用到左侧</button>
             <button class="merge-all" id="merge-selected-right" type="button" disabled>已选应用到右侧 →</button>
+            <button class="merge-all" id="merge-selected-both" type="button" disabled>⇆ 已选保留两边</button>
             <button class="merge-all" id="accept-left" type="button" disabled>全部采用左侧 →</button>
             <button class="merge-all" id="accept-right" type="button" disabled>← 全部采用右侧</button>
+            <button class="merge-all" id="accept-both" type="button" disabled>⇆ 全部保留两边</button>
             <button class="merge-all" id="undo-merge" type="button" disabled>撤销合并</button>
           </div>
           <div class="result-meta">
@@ -589,14 +617,18 @@
       const selectAll = $('#select-all');
       const mergeSelectedLeft = $('#merge-selected-left');
       const mergeSelectedRight = $('#merge-selected-right');
+      const mergeSelectedBoth = $('#merge-selected-both');
       const acceptLeft = $('#accept-left');
       const acceptRight = $('#accept-right');
+      const acceptBoth = $('#accept-both');
       const undoMerge = $('#undo-merge');
       const toggleFullscreen = $('#toggle-fullscreen');
       let debounceTimer;
       let hasCompared = false;
       let currentRows = [];
       let history = [];
+      let selectionAnchor = null;
+      let dragSelection = null;
       const selectedRows = new Set();
 
       const escapeHtml = (value) => String(value)
@@ -618,6 +650,7 @@
       function updateMergeControls(canMerge = left.value !== right.value) {
         acceptLeft.disabled = !canMerge;
         acceptRight.disabled = !canMerge;
+        acceptBoth.disabled = !canMerge || !currentRows.some((row) => row.type !== 'equal');
         undoMerge.disabled = history.length === 0;
       }
 
@@ -630,11 +663,38 @@
         table.querySelectorAll('.row-checkbox').forEach((checkbox) => {
           checkbox.checked = selectedRows.has(Number(checkbox.dataset.row));
         });
+        table.querySelectorAll('.cell[data-row], .merge-cell[data-row]').forEach((cell) => {
+          cell.classList.toggle('row-selected', selectedRows.has(Number(cell.dataset.row)));
+        });
         selectAll.disabled = changeRows.length === 0;
         selectAll.checked = changeRows.length > 0 && selectedCount === changeRows.length;
         selectAll.indeterminate = selectedCount > 0 && selectedCount < changeRows.length;
         mergeSelectedLeft.disabled = selectedCount === 0;
         mergeSelectedRight.disabled = selectedCount === 0;
+        mergeSelectedBoth.disabled = selectedCount === 0;
+      }
+
+      function selectRange(fromIndex, toIndex, selected) {
+        const start = Math.min(fromIndex, toIndex);
+        const end = Math.max(fromIndex, toIndex);
+        for (let index = start; index <= end; index += 1) {
+          if (currentRows[index]?.type === 'equal') continue;
+          if (selected) selectedRows.add(index);
+          else selectedRows.delete(index);
+        }
+      }
+
+      function setRowSelected(rowIndex, selected, extend = false) {
+        if (currentRows[rowIndex]?.type === 'equal') return;
+        if (extend && selectionAnchor !== null) {
+          selectRange(selectionAnchor, rowIndex, selected);
+        } else if (selected) {
+          selectedRows.add(rowIndex);
+        } else {
+          selectedRows.delete(rowIndex);
+        }
+        selectionAnchor = rowIndex;
+        updateSelectionControls();
       }
 
       function pushHistory() {
@@ -816,21 +876,64 @@
 
         const leftClass = row.type === 'delete' || row.type === 'modify' ? ' deleted' : row.left === undefined ? ' empty-cell' : '';
         const rightClass = row.type === 'insert' || row.type === 'modify' ? ' inserted' : row.right === undefined ? ' empty-cell' : '';
+        const selectable = row.type === 'equal' ? '' : ' select-handle';
+        const selectTitle = row.type === 'equal' ? '' : ' title="点击或拖动选择；按 Shift 连选"';
         const mergeButtons = row.type === 'equal' ? '' : `
           <label class="row-select" title="选择此差异">
             <input class="row-checkbox" type="checkbox" data-row="${rowIndex}" aria-label="选择第 ${rowIndex + 1} 行差异">
           </label>
           <button class="merge-button" type="button" data-target="left" data-row="${rowIndex}" title="采用右侧内容" aria-label="将此差异应用到左侧">←</button>
-          <button class="merge-button" type="button" data-target="right" data-row="${rowIndex}" title="采用左侧内容" aria-label="将此差异应用到右侧">→</button>`;
+          <button class="merge-button" type="button" data-target="right" data-row="${rowIndex}" title="采用左侧内容" aria-label="将此差异应用到右侧">→</button>
+          <button class="merge-button" type="button" data-target="both" data-row="${rowIndex}" title="两边内容都保留" aria-label="在左右两侧都保留此差异的内容">⇆</button>`;
         return `
-          <div class="cell number${leftClass}">${row.leftNumber ?? ''}</div>
-          <div class="cell content-left${leftClass}">${leftHtml || (row.left === '' ? '&nbsp;' : '')}</div>
-          <div class="merge-cell">${mergeButtons}</div>
-          <div class="cell number${rightClass}">${row.rightNumber ?? ''}</div>
-          <div class="cell${rightClass}">${rightHtml || (row.right === '' ? '&nbsp;' : '')}</div>`;
+          <div class="cell number row-start${leftClass}${selectable}" data-row="${rowIndex}"${selectTitle}>${row.leftNumber ?? ''}</div>
+          <div class="cell content-left${leftClass}" data-row="${rowIndex}">${leftHtml || (row.left === '' ? '&nbsp;' : '')}</div>
+          <div class="merge-cell" data-row="${rowIndex}">${mergeButtons}</div>
+          <div class="cell number${rightClass}${selectable}" data-row="${rowIndex}"${selectTitle}>${row.rightNumber ?? ''}</div>
+          <div class="cell row-end${rightClass}" data-row="${rowIndex}">${rightHtml || (row.right === '' ? '&nbsp;' : '')}</div>`;
+      }
+
+      function mergeBoth(rowIndexes) {
+        const selected = new Set(rowIndexes.filter((rowIndex) => currentRows[rowIndex]?.type !== 'equal'));
+        if (selected.size === 0) return;
+        const leftLines = [];
+        const rightLines = [];
+        pushHistory();
+
+        for (let index = 0; index < currentRows.length;) {
+          const row = currentRows[index];
+          if (!selected.has(index)) {
+            if (row.left !== undefined) leftLines.push(row.left);
+            if (row.right !== undefined) rightLines.push(row.right);
+            index += 1;
+            continue;
+          }
+
+          const leftBlock = [];
+          const rightBlock = [];
+          while (index < currentRows.length && selected.has(index)) {
+            if (currentRows[index].left !== undefined) leftBlock.push(currentRows[index].left);
+            if (currentRows[index].right !== undefined) rightBlock.push(currentRows[index].right);
+            index += 1;
+          }
+          const combined = leftBlock.concat(rightBlock);
+          leftLines.push(...combined);
+          rightLines.push(...combined);
+        }
+
+        left.value = leftLines.join('\n');
+        right.value = rightLines.join('\n');
+        selectedRows.clear();
+        selectionAnchor = null;
+        updateCounts();
+        compare();
       }
 
       function mergeRows(rowIndexes, target) {
+        if (target === 'both') {
+          mergeBoth(rowIndexes);
+          return;
+        }
         const rows = rowIndexes
           .map((rowIndex) => ({ rowIndex, row: currentRows[rowIndex] }))
           .filter(({ row }) => row && row.type !== 'equal')
@@ -867,6 +970,7 @@
         }
 
         selectedRows.clear();
+        selectionAnchor = null;
         updateCounts();
         compare();
       }
@@ -909,6 +1013,7 @@
         if (!leftValue && !rightValue) {
           currentRows = [];
           selectedRows.clear();
+          selectionAnchor = null;
           resultPanel.classList.remove('has-results');
           table.hidden = true;
           emptyState.hidden = false;
@@ -931,6 +1036,7 @@
         const changed = counts.insert + counts.delete + counts.modify;
 
         selectedRows.clear();
+        selectionAnchor = null;
         table.innerHTML = rows.map(renderRow).join('');
         table.hidden = false;
         emptyState.hidden = true;
@@ -947,6 +1053,7 @@
       function scheduleCompare() {
         history = [];
         selectedRows.clear();
+        selectionAnchor = null;
         updateCounts();
         updateMergeControls();
         updateSelectionControls();
@@ -967,17 +1074,37 @@
         mergeRow(Number(button.dataset.row), button.dataset.target);
       });
 
-      table.addEventListener('change', (event) => {
+      table.addEventListener('click', (event) => {
         const checkbox = event.target.closest('.row-checkbox');
         if (!checkbox) return;
         const rowIndex = Number(checkbox.dataset.row);
-        if (checkbox.checked) {
-          selectedRows.add(rowIndex);
-        } else {
-          selectedRows.delete(rowIndex);
-        }
+        setRowSelected(rowIndex, checkbox.checked, event.shiftKey);
+      });
+
+      table.addEventListener('pointerdown', (event) => {
+        const handle = event.target.closest('.select-handle');
+        if (!handle || event.button !== 0) return;
+        const rowIndex = Number(handle.dataset.row);
+        const selected = !selectedRows.has(rowIndex);
+        event.preventDefault();
+        setRowSelected(rowIndex, selected, event.shiftKey);
+        dragSelection = { selected, lastRow: rowIndex };
+      });
+
+      table.addEventListener('pointermove', (event) => {
+        if (!dragSelection || event.buttons !== 1) return;
+        const handle = document.elementFromPoint(event.clientX, event.clientY)?.closest('.select-handle');
+        if (!handle || !table.contains(handle)) return;
+        const rowIndex = Number(handle.dataset.row);
+        if (rowIndex === dragSelection.lastRow) return;
+        selectRange(dragSelection.lastRow, rowIndex, dragSelection.selected);
+        dragSelection.lastRow = rowIndex;
+        selectionAnchor = rowIndex;
         updateSelectionControls();
       });
+
+      document.addEventListener('pointerup', () => { dragSelection = null; });
+      document.addEventListener('pointercancel', () => { dragSelection = null; });
 
       selectAll.addEventListener('change', () => {
         selectedRows.clear();
@@ -986,11 +1113,13 @@
             if (row.type !== 'equal') selectedRows.add(index);
           });
         }
+        selectionAnchor = null;
         updateSelectionControls();
       });
 
       mergeSelectedLeft.addEventListener('click', () => mergeRows([...selectedRows], 'left'));
       mergeSelectedRight.addEventListener('click', () => mergeRows([...selectedRows], 'right'));
+      mergeSelectedBoth.addEventListener('click', () => mergeRows([...selectedRows], 'both'));
 
       acceptLeft.addEventListener('click', () => {
         if (left.value === right.value) return;
@@ -1006,6 +1135,13 @@
         left.value = right.value;
         updateCounts();
         compare();
+      });
+
+      acceptBoth.addEventListener('click', () => {
+        const changeRows = currentRows
+          .map((row, index) => row.type === 'equal' ? null : index)
+          .filter((index) => index !== null);
+        mergeRows(changeRows, 'both');
       });
 
       undoMerge.addEventListener('click', () => {
