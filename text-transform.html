@@ -111,9 +111,44 @@
       const itemCount = document.querySelector('#item-count');
       const resultCount = document.querySelector('#result-count');
       const status = document.querySelector('#status');
+      let splitterManuallyEdited = false;
 
       function parseSeparator(value) {
         return value.replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t').replace(/\\\\/g, '\\');
+      }
+
+      function inferSeparator(value) {
+        const candidates = [
+          { separator: '\r\n', input: '\\r\\n' },
+          { separator: '\n', input: '\\n' },
+          { separator: '\t', input: '\\t' },
+          { separator: ',', input: ',' },
+          { separator: '，', input: '，' },
+          { separator: ';', input: ';' },
+          { separator: '；', input: '；' },
+          { separator: '|', input: '|' }
+        ];
+        const lines = value.split(/\r?\n/).filter((line) => line.length > 0);
+
+        return candidates.reduce((best, candidate) => {
+          const occurrences = value.split(candidate.separator).length - 1;
+          if (!occurrences) return best;
+
+          let score = occurrences;
+          if (candidate.separator.includes('\n')) {
+            score += lines.length > 1 ? 1.5 : 0;
+          } else {
+            const matchingLines = lines.filter((line) => line.includes(candidate.separator));
+            const partCounts = matchingLines.map((line) => line.split(candidate.separator).length);
+            const mostCommonCount = Math.max(...partCounts.map(
+              (count) => partCounts.filter((item) => item === count).length
+            ));
+            score += (mostCommonCount / matchingLines.length) * 2;
+            score += matchingLines.length / Math.max(lines.length, 1);
+          }
+
+          return !best || score > best.score ? { ...candidate, score } : best;
+        }, null);
       }
 
       function renderPreview(items) {
@@ -158,7 +193,19 @@
         status.textContent = source.value ? '结果已自动更新' : '等待输入';
       }
 
-      [source, splitter, joiner, trim, removeEmpty].forEach((element) => {
+      source.addEventListener('input', () => {
+        if (!splitterManuallyEdited) {
+          splitter.value = inferSeparator(source.value)?.input ?? '';
+        }
+        transform();
+      });
+
+      splitter.addEventListener('input', () => {
+        splitterManuallyEdited = true;
+        transform();
+      });
+
+      [joiner, trim, removeEmpty].forEach((element) => {
         element.addEventListener('input', transform);
         element.addEventListener('change', transform);
       });
