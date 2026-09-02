@@ -54,16 +54,16 @@
     <section class="controls" aria-label="处理规则">
       <div class="control">
         <label for="splitter">分割字符</label>
-        <input id="splitter" type="text" value="," spellcheck="false" aria-describedby="splitter-help">
+        <input id="splitter" type="text" spellcheck="false" aria-describedby="splitter-help">
         <div id="splitter-help" class="hint">例如 <code>,</code>、<code>|</code> 或 <code>\n</code></div>
       </div>
       <div class="control">
         <label for="joiner">合并字符</label>
-        <input id="joiner" type="text" value="\n" spellcheck="false" aria-describedby="joiner-help">
+        <input id="joiner" type="text" spellcheck="false" aria-describedby="joiner-help">
         <div id="joiner-help" class="hint">留空表示直接拼接</div>
       </div>
       <div class="options">
-        <label><input id="trim" type="checkbox" checked> 每项去除首尾空白</label>
+        <label><input id="trim" type="checkbox"> 每项去除首尾空白</label>
         <label><input id="remove-empty" type="checkbox"> 移除空项</label>
       </div>
     </section>
